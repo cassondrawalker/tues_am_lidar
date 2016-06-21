@@ -1,0 +1,119 @@
+---
+title: "Classify Raster Data"
+author: "Cassondra Walker"
+date: "June 21, 2016"
+output: html_document
+---
+### Notes
+require v library - 
+      library provides an error message
+      require provides a true false statement
+      
+.../ lets you go up a file path
+### Load Libraries
+
+```{r setup, import_libraries}
+
+library(raster)
+library(rgdal)
+
+```
+
+### Import Canopy Height Model
+
+``` {r canopy_height_model}
+chm <- raster("../NEONdata/D17-California/TEAK/2013/lidar/TEAK_lidarCHM.tif")
+
+#this plots using the raster package
+plot(chm)
+
+# these are just pixels ans will stretc the space
+image(chm)
+```
+
+### Deal with 0 values
+
+``` {r deal_with_zero}
+
+hist(chm)
+
+chm[chm==0] <- NA
+
+hist(chm,
+     xlab = "Tree Height (m)")
+
+```
+
+### Import Aspect Data
+
+``` {r import_aspect}
+
+aspect <- raster("../NEONdata/D17-California/TEAK/2013/lidar/TEAK_lidarAspect.tif")
+
+plot(aspect,
+     main = "Aspect for Teakettle Field Site")
+```
+
+### Creat Aspect Classifcation Matrix
+
+``` {r class_matrix}
+
+# north will be class 1 (0-45 degrees as well as 315-360)
+# south will be class 2 (135-225 degrees)
+class.m <- c(0, 45, 1,
+             45, 135, NA,
+             135, 225, 2,
+             225, 315, NA,
+             315, 360, 1)
+
+# redefine the array above to a matrix
+rcl.m <- matrix(class.m,
+          ncol = 3,
+          byrow = TRUE)
+
+rcl.m
+
+```
+
+### Reclassify Raster
+
+``` {r perform_reclass}
+
+asp.ns <- reclassify(aspect,
+                     rcl.m)
+
+plot(asp.ns,
+     main = "North and South Facing Slopes")
+```
+
+### Export Geotiff
+
+``` {r export_geotiff, eval=FALSE}
+
+writeRaster(asp.ns,
+            file = "../outputs/TEAK/TEAKnsAspect2.tif",
+            options = "COMPRESS=LZW",
+            NAflag = -9999)
+```
+
+### Mask Raster based on pixel values
+
+``` {r mask_raster}
+
+asp.ns
+
+ndvi <- raster("../NEONdata/D17-California/TEAK/2013/spectrometer/veg_index/TEAK_NDVI.tif")
+
+plot(ndvi,
+     main = "NDVI for Teakettle")
+
+# mask data
+
+nFacing.ndvi <- mask(ndvi,asp.ns)
+
+plot(nFacing.ndvi)
+
+```
+
+
+
